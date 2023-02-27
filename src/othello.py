@@ -1,3 +1,6 @@
+"""
+Othello
+"""
 import os
 import pgn
 import numpy as np
@@ -26,22 +29,25 @@ mask[4, 3] = 1
 mask[4, 4] = 1
 mask = mask.astype(bool)
 
-class color:
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
 
-# Othello is a strategy board game for two players (Black and White), played on an 8 by 8 board. 
+class color:
+    PURPLE = "\033[95m"
+    CYAN = "\033[96m"
+    DARKCYAN = "\033[36m"
+    BLUE = "\033[94m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+    END = "\033[0m"
+
+
+# Othello is a strategy board game for two players (Black and White), played on an 8 by 8 board.
 # The game traditionally begins with four discs placed in the middle of the board as shown below. Black moves first.
 # W (27) B (28)
 # B (35) W (36)
+
 
 def permit(s):
     s = s.lower()
@@ -51,17 +57,20 @@ def permit(s):
         return -1
     return rows.index(s[0]) * 8 + columns.index(s[1])
 
+
 def permit_reverse(integer):
     r, c = integer // 8, integer % 8
     return "".join([rows[r], columns[c]])
+
 
 start_hands = [permit(_) for _ in ["d5", "d4", "e4", "e5"]]
 eights = [[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]]
 
 wanna_use = "othello_synthetic"
 
+
 class Othello:
-    def __init__(self, ood_perc=0., data_root=None, wthor=False, ood_num=1000):
+    def __init__(self, ood_perc=0.0, data_root=None, wthor=False, ood_num=1000):
         # ood_perc: probability of swapping an in-distribution game (real championship game)
         # with a generated legit but stupid game, when data_root is None, should set to 0
         # data_root: if provided, will load pgn files there, else load from data/gen10e5
@@ -70,30 +79,40 @@ class Othello:
         self.sequences = []
         self.results = []
         self.board_size = 8 * 8
-        criteria = lambda fn: fn.endswith("pgn") if wthor else fn.startswith("liveothello")
+        criteria = (
+            lambda fn: fn.endswith("pgn") if wthor else fn.startswith("liveothello")
+        )
         if data_root is None:
             if ood_num == 0:
                 return
             else:
                 if ood_num != -1:  # this setting used for generating synthetic dataset
-                    num_proc = multiprocessing.cpu_count() # use all processors
+                    num_proc = multiprocessing.cpu_count()  # use all processors
                     p = multiprocessing.Pool(num_proc)
-                    for can in tqdm(p.imap(get_ood_game, range(ood_num)), total=ood_num):
+                    for can in tqdm(
+                        p.imap(get_ood_game, range(ood_num)), total=ood_num
+                    ):
                         if not can in self.sequences:
                             self.sequences.append(can)
                     p.close()
                     t_start = time.strftime("_%Y%m%d_%H%M%S")
                     if ood_num > 1000:
-                        with open(f'./data/{wanna_use}/gen10e5_{t_start}.pickle', 'wb') as handle:
-                            pickle.dump(self.sequences, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                        with open(
+                            f"./data/{wanna_use}/gen10e5_{t_start}.pickle", "wb"
+                        ) as handle:
+                            pickle.dump(
+                                self.sequences, handle, protocol=pickle.HIGHEST_PROTOCOL
+                            )
                 else:
                     bar = tqdm(os.listdir(f"./data/{wanna_use}"))
                     trash = []
-                    cnt = 0 
+                    cnt = 0
                     for f in bar:
                         if not f.endswith(".pickle"):
                             continue
-                        with open(os.path.join(f"./data/{wanna_use}", f), 'rb') as handle:
+                        with open(
+                            os.path.join(f"./data/{wanna_use}", f), "rb"
+                        ) as handle:
                             cnt += 1
                             if cnt > 250:
                                 break
@@ -111,10 +130,14 @@ class Othello:
                     self.sequences = [k for k, _ in itertools.groupby(seq)]
                     for t in trash:
                         os.remove(os.path.join(f"./data/{wanna_use}", f))
-                    print(f"Deduplicating finished with {len(self.sequences)} games left")
+                    print(
+                        f"Deduplicating finished with {len(self.sequences)} games left"
+                    )
                     self.val = self.sequences[20000000:]
                     self.sequences = self.sequences[:20000000]
-                    print(f"Using 20 million for training, {len(self.val)} for validation")
+                    print(
+                        f"Using 20 million for training, {len(self.val)} for validation"
+                    )
         else:
             for fn in os.listdir(data_root):
                 if criteria(fn):
@@ -143,19 +166,25 @@ class Othello:
                             processed.append(tba)
 
                     num_psd = len(processed)
-                    print(f"Loaded {num_psd}/{num_ldd} (qualified/total) sequences from {fn}")
+                    print(
+                        f"Loaded {num_psd}/{num_ldd} (qualified/total) sequences from {fn}"
+                    )
                     self.sequences.extend(processed)
                     self.results.extend(res)
-        
-    def __len__(self, ):
+
+    def __len__(
+        self,
+    ):
         return len(self.sequences)
+
     def __getitem__(self, i):
         if random.random() < self.ood_perc:
             tbr = get_ood_game(0)
         else:
             tbr = self.sequences[i]
         return tbr
-    
+
+
 def get_ood_game(_):
     tbr = []
     ab = OthelloBoardState()
@@ -163,41 +192,72 @@ def get_ood_game(_):
     while possible_next_steps:
         next_step = random.choice(possible_next_steps)
         tbr.append(next_step)
-        ab.update([next_step, ])
+        ab.update(
+            [
+                next_step,
+            ]
+        )
         possible_next_steps = ab.get_valid_moves()
     return tbr
-    
-def get(ood_perc=0., data_root=None, wthor=False, ood_num=1000):
+
+
+def get(ood_perc=0.0, data_root=None, wthor=False, ood_num=1000):
     return Othello(ood_perc, data_root, wthor, ood_num)
-    
-class OthelloBoardState():
+
+
+class OthelloBoardState:
     # 1 is black, -1 is white
-    def __init__(self, board_size = 8):
+    def __init__(self, board_state: np.array = None, board_size=8):
         self.board_size = board_size * board_size
-        board = np.zeros((8, 8))
-        board[3, 4] = 1
-        board[3, 3] = -1
-        board[4, 3] = 1
-        board[4, 4] = -1
+
+        if board_state is None:
+            board = np.zeros((8, 8))
+            board[3, 4] = 1
+            board[3, 3] = -1
+            board[4, 3] = 1
+            board[4, 4] = -1
+        else:
+            board = board_state
+
         self.initial_state = board
         self.state = self.initial_state
         self.age = np.zeros((8, 8))
         self.next_hand_color = 1
         self.history = []
 
-    def get_occupied(self, ):
+    def get_occupied(
+        self,
+    ):
         board = self.state
         tbr = board.flatten() != 0
         return tbr.tolist()
-    def get_state(self, ):
+
+    def get_state(
+        self,
+    ):
         board = self.state + 1  # white 0, blank 1, black 2
         tbr = board.flatten()
         return tbr.tolist()
-    def get_age(self, ):
+
+    def get_age(
+        self,
+    ):
         return self.age.flatten().tolist()
-    def get_next_hand_color(self, ):
+
+    def get_next_hand_color(
+        self,
+    ):
         return (self.next_hand_color + 1) // 2
-    
+
+    def get_hash(self):
+        """
+        Hash board-state.
+        """
+        _board = self.state
+        tbr = _board.flatten()
+        hashed = "".join([str(x) for x in tbr.tolist()])
+        return hashed
+
     def update(self, moves, prt=False):
         # takes a new move or new moves and update state
         if prt:
@@ -218,7 +278,7 @@ class OthelloBoardState():
             cur_r, cur_c = r, c
             while 1:
                 cur_r, cur_c = cur_r + direction[0], cur_c + direction[1]
-                if cur_r < 0  or cur_r > 7 or cur_c < 0 or cur_c > 7:
+                if cur_r < 0 or cur_r > 7 or cur_c < 0 or cur_c > 7:
                     break
                 if self.state[cur_r, cur_c] == 0:
                     break
@@ -236,7 +296,7 @@ class OthelloBoardState():
                 cur_r, cur_c = r, c
                 while 1:
                     cur_r, cur_c = cur_r + direction[0], cur_c + direction[1]
-                    if cur_r < 0  or cur_r > 7 or cur_c < 0 or cur_c > 7:
+                    if cur_r < 0 or cur_r > 7 or cur_c < 0 or cur_c > 7:
                         break
                     if self.state[cur_r, cur_c] == 0:
                         break
@@ -251,7 +311,7 @@ class OthelloBoardState():
                 assert 0, "Both color cannot put piece, game should have ended!"
             else:
                 assert 0, "Illegal move!"
-                
+
         self.age += 1
         for ff in tbf:
             self.state[ff[0], ff[1]] *= -1
@@ -260,10 +320,13 @@ class OthelloBoardState():
         self.age[r, c] = 0
         self.next_hand_color *= -1
         self.history.append(move)
-        
-    def __print__(self, ):
-        print("-"*20)
-        print([permit_reverse(_) for _ in self.history])
+
+    def __print__(self, depth=0):
+
+        pad_size = 4 * depth
+        pad = " " * pad_size
+        print(pad + "-" * 20)
+        # print([pad + permit_reverse(_) for _ in self.history])
         a = "abcdefgh"
         for k, row in enumerate(self.state.tolist()):
             tbp = []
@@ -271,18 +334,18 @@ class OthelloBoardState():
                 if ele == -1:
                     tbp.append("O")
                 elif ele == 0:
-                    tbp.append(" ")
+                    tbp.append("_")
                 else:
                     tbp.append("X")
             # tbp.append("\n")
-            print(" ".join([a[k]] + tbp))
+            print(pad + " ".join([a[k]] + tbp))
         tbp = [str(k) for k in range(1, 9)]
-        print(" ".join([" "] + tbp))
-        print("-"*20)
-        
+        print(pad + " ".join([" "] + tbp))
+        print(pad + "-" * 20)
+
     def plot_hm(self, ax, heatmap, pdmove, logit=False):
-        padding = np.array([0., 0.])
-        trs = {-1: r'O', 0: " ", 1: r'X'}
+        padding = np.array([0.0, 0.0])
+        trs = {-1: r"O", 0: " ", 1: r"X"}
         if len(heatmap) == 60:
             heatmap = [heatmap[:27], padding, heatmap[27:33], padding, heatmap[33:]]
             heatmap = np.concatenate(heatmap)
@@ -290,39 +353,80 @@ class OthelloBoardState():
         heatmap = np.array(heatmap).reshape(8, 8)
         annot = [trs[_] for _ in self.state.flatten().tolist()]
         cloned = deepcopy(self)
-        cloned.update([pdmove, ])
+        cloned.update(
+            [
+                pdmove,
+            ]
+        )
 
         next_color = 1 - cloned.get_next_hand_color()
-        annot[pdmove] = ("\\underline{" + (trs[next_color * 2 -1]) + "}")[-13:]
+        annot[pdmove] = ("\\underline{" + (trs[next_color * 2 - 1]) + "}")[-13:]
 
-        color = {-1:'white', 0:'grey', 1:'black'}
+        color = {-1: "white", 0: "grey", 1: "black"}
         ann_col = [color[_] for _ in self.state.flatten().tolist()]
         # ann_col[pdmove] = color[next_color * 2 -1]
-        text_for_next_color = color[next_color * 2 -1].capitalize()
+        text_for_next_color = color[next_color * 2 - 1].capitalize()
 
         del cloned
         if logit:
             max_logit = np.max(np.abs(heatmap))
-            sns.heatmap(data=heatmap, cbar=False, xticklabels=list(range(1,9)), 
-                        # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#3349F2"]),
-                        cmap=sns.color_palette("vlag", as_cmap=True), 
-                        yticklabels=list("ABCDEFGH"), ax=ax, fmt="", square=True, linewidths=.5, vmin=-max_logit, vmax=max_logit, center=0)
+            sns.heatmap(
+                data=heatmap,
+                cbar=False,
+                xticklabels=list(range(1, 9)),
+                # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#3349F2"]),
+                cmap=sns.color_palette("vlag", as_cmap=True),
+                yticklabels=list("ABCDEFGH"),
+                ax=ax,
+                fmt="",
+                square=True,
+                linewidths=0.5,
+                vmin=-max_logit,
+                vmax=max_logit,
+                center=0,
+            )
         else:
-            sns.heatmap(data=heatmap, cbar=False, xticklabels=list(range(1,9)),
-                        # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#B90E0A"]),
-                        cmap=sns.color_palette("vlag", as_cmap=True), 
-                        yticklabels=list("ABCDEFGH"), ax=ax, fmt="", square=True, linewidths=.5, vmin=-1, vmax=1, center=0)
-        ax.set_title(f"Prediction: {text_for_next_color} at " + permit_reverse(pdmove).upper())
-        ax.add_patch(Rectangle((pdmove%8, pdmove//8), 1, 1, fill=False, edgecolor='black', lw=2))
+            sns.heatmap(
+                data=heatmap,
+                cbar=False,
+                xticklabels=list(range(1, 9)),
+                # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#B90E0A"]),
+                cmap=sns.color_palette("vlag", as_cmap=True),
+                yticklabels=list("ABCDEFGH"),
+                ax=ax,
+                fmt="",
+                square=True,
+                linewidths=0.5,
+                vmin=-1,
+                vmax=1,
+                center=0,
+            )
+        ax.set_title(
+            f"Prediction: {text_for_next_color} at " + permit_reverse(pdmove).upper()
+        )
+        ax.add_patch(
+            Rectangle(
+                (pdmove % 8, pdmove // 8), 1, 1, fill=False, edgecolor="black", lw=2
+            )
+        )
 
         patchList = []
         for loca, col in enumerate(ann_col):
-            if col != 'grey':
-                patchList.append(PatchCollection([mpatches.Circle((loca%8 + 0.5, loca//8 + 0.5) ,.25, facecolor=col)], match_original=True))
+            if col != "grey":
+                patchList.append(
+                    PatchCollection(
+                        [
+                            mpatches.Circle(
+                                (loca % 8 + 0.5, loca // 8 + 0.5), 0.25, facecolor=col
+                            )
+                        ],
+                        match_original=True,
+                    )
+                )
         for i in patchList:
             ax.add_collection(i)
         return ax
-        
+
     def tentative_move(self, move):
         # tentatively put a piece, do nothing to state
         # returns 0 if this is not a move at all: occupied or both player have to forfeit
@@ -339,7 +443,7 @@ class OthelloBoardState():
             cur_r, cur_c = r, c
             while 1:
                 cur_r, cur_c = cur_r + direction[0], cur_c + direction[1]
-                if cur_r < 0  or cur_r > 7 or cur_c < 0 or cur_c > 7:
+                if cur_r < 0 or cur_r > 7 or cur_c < 0 or cur_c > 7:
                     break
                 if self.state[cur_r, cur_c] == 0:
                     break
@@ -359,7 +463,7 @@ class OthelloBoardState():
                 cur_r, cur_c = r, c
                 while 1:
                     cur_r, cur_c = cur_r + direction[0], cur_c + direction[1]
-                    if cur_r < 0  or cur_r > 7 or cur_c < 0 or cur_c > 7:
+                    if cur_r < 0 or cur_r > 7 or cur_c < 0 or cur_c > 7:
                         break
                     if self.state[cur_r, cur_c] == 0:
                         break
@@ -372,8 +476,10 @@ class OthelloBoardState():
                 return 0
             else:
                 return 2
-        
-    def get_valid_moves(self, ):
+
+    def get_valid_moves(
+        self,
+    ):
         regular_moves = []
         forfeit_moves = []
         for move in range(64):
@@ -384,13 +490,15 @@ class OthelloBoardState():
                 forfeit_moves.append(move)
             else:
                 pass
+
+        # TODO: Clean up error codes.
         if len(regular_moves):
-            return regular_moves
+            return regular_moves, 0
         elif len(forfeit_moves):
-            return forfeit_moves
+            return forfeit_moves, 1
         else:
-            return []
- 
+            return [], 2
+
     def get_gt(self, moves, func, prt=False):
         # takes a new move or new moves and update state
         container = []
@@ -398,11 +506,12 @@ class OthelloBoardState():
             self.__print__()
         for _, move in enumerate(moves):
             self.umpire(move)
-            container.append(getattr(self, func)())  
+            container.append(getattr(self, func)())
             # to predict first y, we need already know the first x
             if prt:
                 self.__print__()
         return container
+
 
 if __name__ == "__main__":
     pass
