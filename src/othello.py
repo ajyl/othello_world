@@ -1,3 +1,6 @@
+"""
+Othello
+"""
 import os
 import pgn
 import numpy as np
@@ -46,9 +49,11 @@ def permit(s):
     return ROWS.index(s[0]) * 8 + COLUMNS.index(s[1])
 
 
+
 def permit_reverse(integer):
     row, col = integer // 8, integer % 8
     return "".join([ROWS[row], COLUMNS[col]])
+
 
 
 start_hands = [permit(_) for _ in ["d5", "d4", "e4", "e5"]]
@@ -217,6 +222,7 @@ class OthelloBoardState:
         board[3, 3] = WHITE
         board[4, 3] = BLACK
         board[4, 4] = WHITE
+
         self.initial_state = board
         self.state = self.initial_state
         self.age = np.zeros((8, 8))
@@ -230,7 +236,9 @@ class OthelloBoardState:
         tbr = board.flatten() != 0
         return tbr.tolist()
 
-    def get_state(self, ):
+    def get_state(
+        self,
+    ):
         board = self.state + 1  # white 0, blank 1, black 2
         tbr = board.flatten()
         return tbr.tolist()
@@ -244,6 +252,15 @@ class OthelloBoardState:
         self,
     ):
         return (self.next_hand_color + 1) // 2
+
+    def get_hash(self):
+        """
+        Hash board-state.
+        """
+        _board = self.state
+        tbr = _board.flatten()
+        hashed = "".join([str(x) for x in tbr.tolist()])
+        return hashed
 
     def update(self, moves, prt=False):
         # takes a new move or new moves and update state
@@ -314,29 +331,31 @@ class OthelloBoardState:
         self.next_hand_color *= -1
         self.history.append(move)
 
-    def __print__(
-        self,
-    ):
-        print("-" * 20)
-        print([permit_reverse(_) for _ in self.history])
+    def __print__(self, depth=0):
+
+        pad_size = 4 * depth
+        pad = " " * pad_size
+        print(pad + "-" * 20)
+        # print([pad + permit_reverse(_) for _ in self.history])
         a = "abcdefgh"
         for k, row in enumerate(self.state.tolist()):
             tbp = []
             for ele in row:
                 if ele == WHITE:
                     tbp.append("O")
-                elif ele == EMPTY:
-                    tbp.append(" ")
+                elif ele == 0:
+                    tbp.append("_")
                 else:
                     tbp.append("X")
-            print(" ".join([a[k]] + tbp))
+            # tbp.append("\n")
+            print(pad + " ".join([a[k]] + tbp))
         tbp = [str(k) for k in range(1, 9)]
-        print(" ".join([" "] + tbp))
-        print("-" * 20)
+        print(pad + " ".join([" "] + tbp))
+        print(pad + "-" * 20)
 
-    def plot_heatmap(self, ax, heatmap, pdmove, logit=False):
+    def plot_hm(self, ax, heatmap, pdmove, logit=False):
         padding = np.array([0.0, 0.0])
-        trs = {WHITE: r"O", EMPTY: " ", BLACK: r"X"}
+        trs = {-1: r"O", 0: " ", 1: r"X"}
         if len(heatmap) == 60:
             heatmap = [
                 heatmap[:27],
@@ -357,12 +376,11 @@ class OthelloBoardState:
         )
 
         next_color = 1 - cloned.get_next_hand_color()
-        annot[pdmove] = ("\\underline{" + (trs[next_color * 2 - 1]) + "}")[
-            -13:
-        ]
+        annot[pdmove] = ("\\underline{" + (trs[next_color * 2 - 1]) + "}")[-13:]
 
-        color = {WHITE: "white", EMPTY: "grey", BLACK: "black"}
+        color = {-1: "white", 0: "grey", 1: "black"}
         ann_col = [color[_] for _ in self.state.flatten().tolist()]
+        # ann_col[pdmove] = color[next_color * 2 -1]
         text_for_next_color = color[next_color * 2 - 1].capitalize()
 
         del cloned
@@ -372,6 +390,7 @@ class OthelloBoardState:
                 data=heatmap,
                 cbar=False,
                 xticklabels=list(range(1, 9)),
+                # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#3349F2"]),
                 cmap=sns.color_palette("vlag", as_cmap=True),
                 yticklabels=list("ABCDEFGH"),
                 ax=ax,
@@ -387,6 +406,7 @@ class OthelloBoardState:
                 data=heatmap,
                 cbar=False,
                 xticklabels=list(range(1, 9)),
+                # cmap=LinearSegmentedColormap.from_list("custom_cmap",  ["#D3D3D3", "#B90E0A"]),
                 cmap=sns.color_palette("vlag", as_cmap=True),
                 yticklabels=list("ABCDEFGH"),
                 ax=ax,
@@ -398,17 +418,11 @@ class OthelloBoardState:
                 center=0,
             )
         ax.set_title(
-            f"Prediction: {text_for_next_color} at "
-            + permit_reverse(pdmove).upper()
+            f"Prediction: {text_for_next_color} at " + permit_reverse(pdmove).upper()
         )
         ax.add_patch(
             Rectangle(
-                (pdmove % 8, pdmove // 8),
-                1,
-                1,
-                fill=False,
-                edgecolor="black",
-                lw=2,
+                (pdmove % 8, pdmove // 8), 1, 1, fill=False, edgecolor="black", lw=2
             )
         )
 
@@ -419,9 +433,7 @@ class OthelloBoardState:
                     PatchCollection(
                         [
                             mpatches.Circle(
-                                (loca % 8 + 0.5, loca // 8 + 0.5),
-                                0.25,
-                                facecolor=col,
+                                (loca % 8 + 0.5, loca // 8 + 0.5), 0.25, facecolor=col
                             )
                         ],
                         match_original=True,
