@@ -37,8 +37,7 @@ from transformer_lens import (
     ActivationCache,
 )
 from lens.setup_utils import _convert_to_transformer_lens_format
-from data import get_othello
-from data.othello import permit, start_hands, OthelloBoardState
+from src.othello import get as get_othello, permit, start_hands, OthelloBoardState
 
 # from train_probe_othello import ProbingDataset
 
@@ -98,33 +97,76 @@ def _load_model():
     return model
 
 
+
+#def print_board(moves) -> None:
+#    """
+#    Print board based on tensor.
+#
+#    Input: Tensor of shape (1, 59) for now.
+#    """
+#    assert moves.shape == (1, 59)
+#    moves_list = moves.squeeze().tolist()
+#
+#    board = OthelloBoardState()
+#    board.update(moves_list)
+#    board.__print__()
+
+
+def check_correct(moves, pred, i_to_s):
+    """
+    Check if prediction was valid.
+    """
+    board = OthelloBoardState()
+    board.update(moves)
+
+    x = board.get_valid_moves()
+    y = pred.item()
+    breakpoint()
+    return y in x
+
+
 def get_othello_data():
     """
     Load Othello data
     """
     othello = get_othello(
-        data_root=os.path.join(OTHELLO_HOME, "data/othello_championship")
+        data_root=os.path.join(OTHELLO_HOME, "data/othello_small")
     )
 
     train_dataset = CharDataset(othello)
     loader = DataLoader(
         train_dataset, shuffle=False, pin_memory=True, batch_size=1, num_workers=1
     )
-    return loader
+    return loader, train_dataset.stoi, train_dataset.itos
 
 
 def main():
     """ Driver """
     model = _load_model()
-    data_loader = get_othello_data()
-    for x, y in tqdm(data_loader, total=len(data_loader)):
+    data_loader, s_to_i, i_to_s = get_othello_data()
+    correct = 0
+    for x, y, z in tqdm(data_loader, total=len(data_loader)):
 
         logits = model(x)
 
         next_token_logits = logits[0, -1]
         next_token_prediction = next_token_logits.argmax()
 
+        if next_token_prediction == y.squeeze()[-1].item():
+            correct += 1
+
+        #valid_until = z.index(-100) if -100 in z else 999
+        #moves = z[:valid_until]
+
+        #if check_correct(moves, next_token_prediction, i_to_s):
+
+        #    correct += 1
+
+        logits2, cache = model.run_with_cache(x)
         breakpoint()
+
+
+    breakpoint()
 
 
 if __name__ == "__main__":

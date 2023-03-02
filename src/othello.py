@@ -273,7 +273,10 @@ class OthelloBoardState:
 
     def umpire(self, move):
         row, col = move // 8, move % 8
-        assert self.state[row, col] == 0, f"{row}-{col} is already occupied!"
+        try:
+            assert self.state[row, col] == 0, f"{row}-{col} is already occupied!"
+        except:
+            breakpoint()
 
         color = self.next_hand_color
 
