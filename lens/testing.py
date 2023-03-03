@@ -42,7 +42,7 @@ from src.othello import get as get_othello, permit, start_hands, OthelloBoardSta
 # from train_probe_othello import ProbingDataset
 
 
-OTHELLO_HOME = "/home/repos/othello_world"
+OTHELLO_HOME = "/home/ajyl/othello_world"
 
 
 LOAD_AND_CONVERT_CHECKPOINT = False
@@ -73,7 +73,7 @@ if LOAD_AND_CONVERT_CHECKPOINT:
 torch.set_grad_enabled(False)
 
 
-def _load_model():
+def load_lens_model():
     """
     Load Transformer-Lens version of Othello-GPT
     """
@@ -142,7 +142,7 @@ def get_othello_data():
 
 def main():
     """ Driver """
-    model = _load_model()
+    model = load_lens_model()
     data_loader, s_to_i, i_to_s = get_othello_data()
     correct = 0
     for x, y, z in tqdm(data_loader, total=len(data_loader)):

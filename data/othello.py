@@ -26,6 +26,10 @@ mask[4, 3] = 1
 mask[4, 4] = 1
 mask = mask.astype(bool)
 
+SYNTH_NUM_SAMPLES_TRAIN=4000000
+SYNTH_NUM_SAMPLES_VALID=500000
+
+
 class color:
     PURPLE = '\033[95m'
     CYAN = '\033[96m'
@@ -90,7 +94,10 @@ class Othello:
                     bar = tqdm(os.listdir(f"./data/{wanna_use}"))
                     trash = []
                     cnt = 0 
+                    count = 0
                     for f in bar:
+                        if count >= 50:
+                            break
                         if not f.endswith(".pickle"):
                             continue
                         with open(os.path.join(f"./data/{wanna_use}", f), 'rb') as handle:
@@ -105,16 +112,19 @@ class Othello:
                         process = psutil.Process(os.getpid())
                         mem_gb = process.memory_info().rss / 2 ** 30
                         bar.set_description(f"Mem Used: {mem_gb:.4} GB")
+                        count += 1
+
                     print("Deduplicating...")
                     seq = self.sequences
                     seq.sort()
                     self.sequences = [k for k, _ in itertools.groupby(seq)]
+                    self.sequences = [k for k in self.sequences if len(k) == 60]
                     for t in trash:
                         os.remove(os.path.join(f"./data/{wanna_use}", f))
                     print(f"Deduplicating finished with {len(self.sequences)} games left")
-                    self.val = self.sequences[20000000:]
-                    self.sequences = self.sequences[:20000000]
-                    print(f"Using 20 million for training, {len(self.val)} for validation")
+                    self.val = self.sequences[SYNTH_NUM_SAMPLES_TRAIN:]
+                    self.sequences = self.sequences[:SYNTH_NUM_SAMPLES_TRAIN]
+                    print(f"Using {len(self.sequences)} for training, {len(self.val)} for validation")
         else:
             for fn in os.listdir(data_root):
                 if criteria(fn):

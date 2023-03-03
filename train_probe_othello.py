@@ -61,7 +61,8 @@ if args.championship:
     folder_name = folder_name + "_championship"
 
 print(f"Running experiment for {folder_name}")
-othello = get_othello(data_root="data/othello_championship")
+#othello = get_othello(data_root="data/othello_championship")
+othello = get_othello(ood_num=-1)
 
 train_dataset = CharDataset(othello)
 
@@ -84,7 +85,7 @@ loader = DataLoader(
 )
 act_container = []
 property_container = []
-for x, y in tqdm(loader, total=len(loader)):
+for x, y, z in tqdm(loader, total=len(loader)):
     tbf = [train_dataset.itos[_] for _ in x.tolist()[0]]
     valid_until = tbf.index(-100) if -100 in tbf else 999
     a = OthelloBoardState()
@@ -94,7 +95,7 @@ for x, y in tqdm(loader, total=len(loader)):
     property_container.extend(properties)
 
 age_container = []
-for x, y in tqdm(loader, total=len(loader)):
+for x, y, z in tqdm(loader, total=len(loader)):
     tbf = [train_dataset.itos[_] for _ in x.tolist()[0]]
     valid_until = tbf.index(-100) if -100 in tbf else 999
     a = OthelloBoardState()
