@@ -14,6 +14,7 @@ from mingpt.utils import set_seed
 
 set_seed(42)
 
+import sys
 import time
 import multiprocessing
 import pickle
@@ -139,40 +140,27 @@ acts = []
 fastforward = True
 
 for idx, (x, y, z) in tqdm(enumerate(loader), total=len(loader)):
-
-
-    if idx % 100 == 0:
+    if fastforward and idx % 100 == 0:
         lookahead_idx = idx + 100
         lookahead_path = os.path.join(
-            "/home/ajyl/othello_world",
+            "/scratch/mihalcea_root/mihalcea98/ajyl",
             f"probe_data/resid_6_post_{lookahead_idx}.pkl"
         )
         if not os.path.isfile(lookahead_path):
-            fastfoward = False
-            print("Will start collecting activations.")
+            fastforward = False
+            print(f"Will start collecting activations at {idx}.")
 
         else:
             print(f"Fast-forwarding until {lookahead_idx}.")
 
-    if fastfoward:
+    if fastforward:
         continue
 
-    if idx % 100 == 0:
+    if idx % 100 == 0 and len(acts) > 0:
         output_filepath = os.path.join(
-            "/home/ajyl/othello_world",
+            "/scratch/mihalcea_root/mihalcea98/ajyl",
             f"probe_data/resid_6_post_{idx}.pkl"
         )
-
-        look_ahead = idx + 100
-        lookahead_path = os.path.join(
-            "/home/ajyl/othello_world",
-            f"probe_data/resid_6_post_{idx}.pkl"
-        )
-        #output_filepath = os.path.join(
-        #    "/scratch/mihalcea_root/mihalcea98/ajyl",
-        #    f"probe_data/resid_6_post_{idx}.pkl"
-        #)
-        print("Mem usage of acts:", sys.getsizeof(acts))
         torch.save(acts, output_filepath)
         acts = []
 
@@ -181,6 +169,14 @@ for idx, (x, y, z) in tqdm(enumerate(loader), total=len(loader)):
     act = act.reshape(-1, act.shape[-1])
     acts.extend(act)
 
+
+output_filepath = os.path.join(
+    "/scratch/mihalcea_root/mihalcea98/ajyl",
+    f"probe_data/resid_6_post_{idx}.pkl"
+)
+torch.save(acts, output_filepath)
+
+breakpoint()
 
 
 
