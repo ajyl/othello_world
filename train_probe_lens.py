@@ -68,42 +68,63 @@ loader = DataLoader(
     train_dataset, shuffle=False, pin_memory=True, batch_size=PROP_BATCH_SIZE
 )
 
+
+
 def get_property(x):
     """
-    Parallelize generating states.
+    Generate states.
     """
     tbf = [train_dataset.itos[_] for _ in x.tolist()]
     a = OthelloBoardState()
     properties = a.get_gt(tbf, "get_" + args.exp)  # [block_size, ]
     return properties
+
+
+def get_age(x):
+    """
+    Generate age property.
+    """
+    tbf = [train_dataset.itos[_] for _ in x.tolist()]
+    a = OthelloBoardState()
+    ages = a.get_gt(tbf, "get_age")  # [block_size, ]
+    return ages
  
 
 act_container = []
 num_proc = multiprocessing.cpu_count()
 p = multiprocessing.Pool(num_proc)
 
-for idx, (x, y, z) in tqdm(enumerate(loader), total=len(loader)):
-    output_filepath = os.path.join(
-        "/scratch/mihalcea_root/mihalcea98/ajyl",
-        f"probe_data/properties_{idx}.pkl"
-    )
-    if os.path.isfile(output_filepath):
-        continue
+#for idx, (x, y, z) in tqdm(enumerate(loader), total=len(loader)):
+#    output_filepath = os.path.join(
+#        "/scratch/mihalcea_root/mihalcea98/ajyl",
+#        f"probe_data/properties_{idx}.pkl"
+#    )
+#    if os.path.isfile(output_filepath):
+#        continue
+#
+#    property_container = []
+#    for can in tqdm(p.imap(get_property, x), total=PROP_BATCH_SIZE):
+#        property_container.extend(can)
+#
+#    with open(output_filepath, "wb") as file_p:
+#        pickle.dump(property_container, file_p)
 
-    property_container = []
-    for can in tqdm(p.imap(get_property, x), total=PROP_BATCH_SIZE):
-        property_container.extend(can)
+#for idx, (x, y, z) in tqdm(enumerate(loader), total=len(loader)):
+#    output_filepath = os.path.join(
+#        "/scratch/mihalcea_root/mihalcea98/ajyl",
+#        f"probe_data/age_{idx}.pkl"
+#    )
+#    if os.path.isfile(output_filepath):
+#        continue
+#
+#    age_container = []
+#    for can in tqdm(p.imap(get_age, x), total=PROP_BATCH_SIZE):
+#        age_container.extend(can)
+#
+#    with open(output_filepath, "wb") as file_p:
+#        pickle.dump(age_container, file_p)
 
-    with open(output_filepath, "wb") as file_p:
-        pickle.dump(property_container, file_p)
 
-age_container = []
-for x, y, z in tqdm(loader, total=len(loader)):
-    tbf = [train_dataset.itos[_] for _ in x.tolist()[0]]
-    valid_until = tbf.index(-100) if -100 in tbf else 999
-    a = OthelloBoardState()
-    ages = a.get_gt(tbf[:valid_until], "get_age")  # [block_size, ]
-    age_container.extend(ages)
 
 if args.exp == "state":
     probe_class = 3
