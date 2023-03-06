@@ -1,9 +1,9 @@
 """
-Module Doc String
+Convert "normal" transformer to TransformerLens
 """
 
 
-def _convert_to_transformer_lens_format(in_sd, n_layers=8, n_heads=8):
+def convert_to_transformer_lens_format(in_sd, n_layers=8, n_heads=8):
     out_sd = {}
     out_sd["pos_embed.W_pos"] = in_sd["pos_emb"].squeeze(0)
     out_sd["embed.W_E"] = in_sd["tok_emb.weight"]
